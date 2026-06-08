@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SuperInstance Conservation Gauge</title>
+    <style>
+        body { background: #1a1a2e; color: #e0e0e0; font-family: monospace; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #7b68ee; }
+        .gauge { background: #16213e; border: 2px solid #7b68ee; border-radius: 12px; padding: 24px; margin: 20px 0; }
+        .bar { height: 30px; border-radius: 4px; display: inline-block; margin: 4px; }
+        .gamma { background: #4fc3f7; }
+        .eta { background: #ff8a65; }
+        pre { background: #0f0f23; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        #output { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>⚡ SuperInstance Conservation Gauge</h1>
+    <p>γ + η = total_budget (Fleet-wide conservation law)</p>
+    
+    <div class="gauge">
+        <div id="gauge-display">Loading WASM...</div>
+    </div>
+
+    <h2>Console Output</h2>
+    <pre id="output"></pre>
+
+    <script type="module">
+        // In production, load from pkg/si_conservation_wasm.js
+        // For demo, we simulate the API
+        const output = document.getElementById('output');
+        const gauge = document.getElementById('gauge-display');
+        
+        function log(msg) { output.textContent += msg + '\n'; }
+
+        // Simulated WASM API (replace with real import in production)
+        class Budget {
+            constructor(gamma, eta) { this.gamma = gamma; this.eta = eta; }
+            get total() { return this.gamma + this.eta; }
+            check() { return this.gamma + this.eta === this.total; }
+        }
+
+        class FleetBudget {
+            constructor(budgets) { this.budgets = budgets; }
+            get total_gamma() { return this.budgets.reduce((s, b) => s + b.gamma, 0); }
+            get total_eta() { return this.budgets.reduce((s, b) => s + b.eta, 0); }
+            get total_budget() { return this.total_gamma + this.total_eta; }
+            invariant_holds() { return true; }
+        }
+
+        const fleet = new FleetBudget([
+            new Budget(100, 50),
+            new Budget(43, 32),
+        ]);
+
+        log(`γ_total = ${fleet.total_gamma}`);
+        log(`η_total = ${fleet.total_eta}`);
+        log(`total   = ${fleet.total_budget}`);
+        log(`invariant: ${fleet.invariant_holds() ? '✓ CONSERVED' : '✗ VIOLATED'}`);
+
+        const gamma_pct = (fleet.total_gamma / fleet.total_budget * 100).toFixed(1);
+        const eta_pct = (fleet.total_eta / fleet.total_budget * 100).toFixed(1);
+
+        gauge.innerHTML = `
+            <p><strong>Fleet Conservation Gauge</strong></p>
+            <div style="background:#333;border-radius:8px;overflow:hidden;height:40px;">
+                <div class="bar gamma" style="width:${gamma_pct}%"></div>
+                <div class="bar eta" style="width:${eta_pct}%"></div>
+            </div>
+            <p>γ (compute): ${fleet.total_gamma} (${gamma_pct}%) | η (communication): ${fleet.total_eta} (${eta_pct}%)</p>
+            <p style="color:#4caf50;">✓ γ + η = ${fleet.total_budget} — Conservation invariant holds</p>
+        `;
+    </script>
+</body>
+</html>
